@@ -26,6 +26,6 @@ from srlane.models.utils.a3d_sample import sampling_3d
 
 该包包含两个核心工具模块：
 - **dynamic_assign.py**：动态标签分配算法
-- **a3d_sample.py**：三维自适应采样算法
+- **a3d_sample.py**：多层级自适应采样算法
 
 这些工具函数为 SRLane 的训练和推理提供了重要的算法支持。

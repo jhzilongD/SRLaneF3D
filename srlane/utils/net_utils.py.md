@@ -1,10 +1,10 @@
-# SRLane Network Utilities
+# SRLane 网络工具
 
-## File Overview
+## 文件概述
 
-This module provides essential utilities for neural network model management in the SRLane system. It handles model checkpoint saving and loading operations, including proper handling of multi-GPU training scenarios and state dictionary key management. These utilities are critical for training persistence, model deployment, and experiment reproducibility.
+该模块为 SRLane 系统中的神经网络模型管理提供基本工具。它处理模型检查点保存和加载操作，包括正确处理多GPU训练场景和状态字典键管理。这些工具对于训练持久性、模型部署和实验可重现性至关重要。
 
-## Imports and Dependencies
+## 导入和依赖
 
 ```python
 import os
@@ -12,14 +12,14 @@ import torch
 import torch.nn.functional
 ```
 
-**Dependencies**:
-- **os**: File system operations for path management and directory creation
-- **torch**: PyTorch core functionality for tensor operations and model state
-- **torch.nn.functional**: (Imported but not used in current implementation)
+**依赖项**:
+- **os**: 用于路径管理和目录创建的文件系统操作
+- **torch**: 用于张量操作和模型状态的 PyTorch 核心功能
+- **torch.nn.functional**: （已导入但在当前实现中未使用）
 
-## Core Functions
+## 核心函数
 
-### Model Saving
+### 模型保存
 
 ```python
 def save_model(net, recorder):

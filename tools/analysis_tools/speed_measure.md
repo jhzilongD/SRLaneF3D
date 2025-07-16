@@ -1,8 +1,8 @@
-# Speed Measurement Tool (`speed_measure.py`)
+# 速度测量工具 (`speed_measure.py`)
 
-## File Overview
+## 文件概述
 
-A specialized benchmarking tool for measuring inference speed of SRLane lane detection models. This script provides accurate performance measurements by implementing proper GPU warming, synchronization, and statistical timing to evaluate model efficiency for real-time applications.
+专门用于测量SRLane车道线检测模型推理速度的基准测试工具。该脚本通过实现适当的GPU预热、同步和统计计时来提供准确的性能测量，以评估实时应用的模型效率。
 
 ## Purpose
 

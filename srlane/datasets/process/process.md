@@ -1,7 +1,7 @@
-# SRLane Data Processing Pipeline Orchestrator
+# SRLane 数据处理流程协调器
 
-## File Overview
-This file implements the `Process` class, which serves as the central orchestrator for SRLane's data processing pipeline. It manages the sequential execution of multiple processing components, handles error propagation, and provides a unified interface for complex data transformation workflows.
+## 文件概述
+该文件实现了 `Process` 类，作为 SRLane 数据处理流程的中央协调器。它管理多个处理组件的顺序执行，处理错误传播，并为复杂的数据转换工作流提供统一接口。
 
 ## Code Structure
 

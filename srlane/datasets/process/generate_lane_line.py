@@ -1,26 +1,38 @@
-import math
+# 这是车道线生成和处理的核心文件，实现了从原始注释到训练用数据的转换
+# 包括角度图生成、分割掩码生成、数据增强等关键功能
 
-import numpy as np
-import imgaug.augmenters as iaa
-from imgaug.augmentables.lines import LineString, LineStringsOnImage
-from scipy.interpolate import InterpolatedUnivariateSpline
+import math  # 数学计算库，用于角度计算
 
-from ..registry import PROCESS
+import numpy as np  # 数值计算库
+import imgaug.augmenters as iaa  # 图像增强库
+from imgaug.augmentables.lines import LineString, LineStringsOnImage  # 线条增强工具
+from scipy.interpolate import InterpolatedUnivariateSpline  # 样条插值工具
+
+from ..registry import PROCESS  # 数据处理注册器
 
 
-@PROCESS.register_module
+@PROCESS.register_module  # 将这个类注册为数据处理模块
 class GenerateLaneLine(object):
+    """生成车道线的核心处理类
+    
+    这个类负责将原始的车道线注释转换为训练所需的格式，包括：
+    1. 生成多尺度的角度图
+    2. 生成分割掩码
+    3. 数据增强处理
+    4. 车道线坐标编码
+    """
     def __init__(self, transforms=None, cfg=None, training=True):
-        self.transforms = transforms
-        self.img_w, self.img_h = cfg.img_w, cfg.img_h
-        self.num_points = cfg.num_points
-        self.n_offsets = cfg.num_points
-        self.n_strips = cfg.num_points - 1
-        self.strip_size = self.img_h / self.n_strips
-        self.max_lanes = cfg.max_lanes
-        self.feat_ds_strides = cfg.feat_ds_strides
+        self.transforms = transforms  # 数据增强配置
+        self.img_w, self.img_h = cfg.img_w, cfg.img_h  # 图像宽度和高度
+        self.num_points = cfg.num_points  # 每条车道线的点数（默认72）
+        self.n_offsets = cfg.num_points  # 偏移点数，与num_points相同
+        self.n_strips = cfg.num_points - 1  # 条带数，比点数少1
+        self.strip_size = self.img_h / self.n_strips  # 每个条带的高度
+        self.max_lanes = cfg.max_lanes  # 最大车道数（默认4）
+        self.feat_ds_strides = cfg.feat_ds_strides  # 特征下采样步长[8,16,32]
+        # 生成采样点的y坐标，从上到下
         self.offsets_ys = np.arange(self.img_h, -1, -self.strip_size)
-        self.training = training
+        self.training = training  # 是否为训练模式
 
         if transforms is None:
             raise NotImplementedError("transforms is None")
@@ -49,54 +61,67 @@ class GenerateLaneLine(object):
         self.transform = iaa.Sequential(img_transforms)
 
     def lane_to_linestrings(self, lanes):
+        """将车道线坐标转换为LineString对象，用于图像增强
+        
+        Args:
+            lanes: 车道线坐标列表
+            
+        Returns:
+            LineString对象列表
+        """
         lines = []
-        for lane in lanes:
-            lines.append(LineString(lane))
+        for lane in lanes:  # 遍历每条车道线
+            lines.append(LineString(lane))  # 转换为LineString对象
 
-        return lines
+        return lines  # 返回转换后的列表
 
     @staticmethod
     def sample_lane(points, sample_ys):
-        """Interpolates the x-coordinates of a sorted set of points
-        based on the given sample_ys.
+        """对车道线点进行采样和插值
+        
+        这个函数将不规则的车道线点转换为固定y坐标上的x坐标，
+        使用插值和外推方法处理不同区域的点。
 
         Args:
-            points: Sorted points representing a lane.
-            sample_ys:  Y-coordinates.
+            points: 已排序的车道线点列表
+            sample_ys: 采样的y坐标数组
 
         Returns:
-            ndarray: X-coordinates.
+            ndarray: 对应的x坐标数组
         """
-        # this function expects the points to be sorted
+        # 这个函数期望点是已排序的
         points = np.array(points)
         if not np.all(points[1:, 1] < points[:-1, 1]):
             raise ValueError("Annotaion points have to be sorted")
-        x, y = points[:, 0], points[:, 1]
+        x, y = points[:, 0], points[:, 1]  # 分离出x和y坐标
 
-        # interpolate points inside domain
-        assert len(points) > 1
-        interp = InterpolatedUnivariateSpline(y[::-1],
+        # 对域内的点进行插值
+        assert len(points) > 1  # 至少需要两个点
+        # 使用样条插值，阶数为最大三阶或点数-1
+        interp = InterpolatedUnivariateSpline(y[::-1],  # 反向排序
                                               x[::-1],
                                               k=min(3, len(points) - 1))
-        domain_min_y = y.min()
-        domain_max_y = y.max()
+        domain_min_y = y.min()  # 最小y坐标
+        domain_max_y = y.max()  # 最大y坐标
+        # 找到在域内的采样点
         sample_ys_inside_domain = sample_ys[(sample_ys >= domain_min_y)
                                             & (sample_ys <= domain_max_y)]
-        assert len(sample_ys_inside_domain) > 0
-        interp_xs = interp(
-            sample_ys_inside_domain)  # Since it is interpolation, the interp_xs are guaranteed to be within the range of the image. # noqa: E501
+        assert len(sample_ys_inside_domain) > 0  # 至少应有一个点在域内
+        # 使用插值计算x坐标，由于是插值，结果保证在图像范围内
+        interp_xs = interp(sample_ys_inside_domain)
 
-        # extrapolate lane to the bottom of the image with a straight line
-        # using the 2 points closest to the bottom
-        two_closest_points = points[:2]
+        # 使用直线外推将车道线延伸到图像底部
+        # 使用最靠近底部的2个点
+        two_closest_points = points[:2]  # 最靠近底部的2个点
+        # 使用一次多项式拟合直线
         extrap = np.polyfit(two_closest_points[:, 1],
                             two_closest_points[:, 0],
                             deg=1)
-        extrap_ys = sample_ys[sample_ys > domain_max_y]
-        extrap_xs = np.polyval(extrap, extrap_ys)  # It is possible to exceed the range. # noqa: E501
-        all_xs = np.hstack((extrap_xs, interp_xs))
+        extrap_ys = sample_ys[sample_ys > domain_max_y]  # 需要外推的y坐标
+        extrap_xs = np.polyval(extrap, extrap_ys)  # 计算外推的x坐标，可能超出范围
+        all_xs = np.hstack((extrap_xs, interp_xs))  # 合并外推和插值的结果
 
-        return all_xs
+        return all_xs  # 返回所有的x坐标
 
     @staticmethod
     def filter_duplicate_points(points):

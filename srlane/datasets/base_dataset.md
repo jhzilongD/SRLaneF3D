@@ -1,23 +1,23 @@
-# SRLane Base Dataset Class
+# SRLane 基础数据集类
 
-## File Overview
-This file implements the `BaseDataset` class, which serves as the foundation for all dataset implementations in the SRLane system. It provides common functionality for loading images, processing annotations, and handling metadata that is shared across different lane detection datasets.
+## 文件概述
+该文件实现了 `BaseDataset` 类，它是 SRLane 系统中所有数据集实现的基础。它提供了加载图像、处理标注和处理在不同车道线检测数据集之间共享的元数据的通用功能。
 
-## Code Structure
+## 代码结构
 
-### Class Definition
+### 类定义
 ```python
 @DATASETS.register_module
 class BaseDataset(Dataset):
 ```
-The base dataset inherits from PyTorch's `Dataset` class and is registered in the SRLane dataset registry for automatic instantiation.
+基础数据集继承自 PyTorch 的 `Dataset` 类，并在 SRLane 数据集注册器中注册以便自动实例化。
 
-### Constructor
+### 构造函数
 ```python
 def __init__(self, data_root, split, processes=None, cfg=None):
 ```
 
-#### Parameters:
+#### 参数:
 - **`data_root`** (str): Root directory path containing the dataset files
 - **`split`** (str): Dataset split identifier ("train", "val", "test")  
 - **`processes`** (list, optional): List of data processing/augmentation operations

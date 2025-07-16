@@ -1,246 +1,288 @@
+# 这是ResNet骨干网络的实现文件，ResNet是深度学习中最重要的卷积神经网络之一
+# 它解决了深度网络训练中的梯度消失问题，通过残差连接让网络可以训练得更深
+
 # flake8: noqa
-from torch import nn
-from torch.hub import load_state_dict_from_url
+from torch import nn  # 导入PyTorch神经网络模块
+from torch.hub import load_state_dict_from_url  # 用于从网络下载预训练模型参数
 
-from srlane.models.registry import BACKBONES
+from srlane.models.registry import BACKBONES  # 导入骨干网络注册器
 
+# 预训练模型的下载链接字典
+# 这些模型都是在ImageNet数据集上预训练的，可以用于迁移学习
 model_urls = {
-    "resnet18":
+    "resnet18":  # 18层ResNet，比较轻量，适合快速实验
         "https://download.pytorch.org/models/resnet18-5c106cde.pth",
-    "resnet34":
+    "resnet34":  # 34层ResNet，在准确率和速度间取得平衡
         "https://download.pytorch.org/models/resnet34-333f7ec4.pth",
-    "resnet50":
+    "resnet50":  # 50层ResNet，最常用的版本，性能优异
         "https://download.pytorch.org/models/resnet50-19c8e357.pth",
-    "resnet101":
+    "resnet101":  # 101层ResNet，更深的网络，准确率更高但速度较慢
         "https://download.pytorch.org/models/resnet101-5d3b4d8f.pth",
-    "resnet152":
+    "resnet152":  # 152层ResNet，非常深的网络
         "https://download.pytorch.org/models/resnet152-b121ed2d.pth",
-    "resnext50_32x4d":
+    "resnext50_32x4d":  # ResNeXt变种，使用分组卷积提高效率
         "https://download.pytorch.org/models/resnext50_32x4d-7cdf4587.pth",
-    "resnext101_32x8d":
+    "resnext101_32x8d":  # 更深的ResNeXt版本
         "https://download.pytorch.org/models/resnext101_32x8d-8ba56ff5.pth",
-    "wide_resnet50_2":
+    "wide_resnet50_2":  # 宽ResNet，增加通道数而不是深度
         "https://download.pytorch.org/models/wide_resnet50_2-95faca4d.pth",
-    "wide_resnet101_2":
+    "wide_resnet101_2":  # 更深的宽ResNet
         "https://download.pytorch.org/models/wide_resnet101_2-32ee1156.pth",
 }
 
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
-    """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes,
-                     out_planes,
-                     kernel_size=3,
-                     stride=stride,
-                     padding=dilation,
-                     groups=groups,
-                     bias=False,
-                     dilation=dilation)
+    """3x3卷积层，带填充
+    这是ResNet中最常用的卷积层，3x3的卷积核可以捕获局部特征
+    """
+    return nn.Conv2d(in_planes,     # 输入通道数
+                     out_planes,    # 输出通道数
+                     kernel_size=3, # 卷积核大小3x3
+                     stride=stride, # 步长，控制输出大小
+                     padding=dilation, # 填充，保持特征图大小
+                     groups=groups, # 分组卷积，用于ResNeXt
+                     bias=False,    # 不使用偏置，因为后面有BatchNorm
+                     dilation=dilation)  # 膨胀卷积，用于增大感受野
 
 
 def conv1x1(in_planes, out_planes, stride=1):
-    """1x1 convolution"""
-    return nn.Conv2d(in_planes,
-                     out_planes,
-                     kernel_size=1,
-                     stride=stride,
-                     bias=False)
+    """1x1卷积层
+    主要用于改变通道数，不改变特征图的空间大小
+    在ResNet中用于瓶颈结构和残差连接的维度匹配
+    """
+    return nn.Conv2d(in_planes,     # 输入通道数
+                     out_planes,    # 输出通道数
+                     kernel_size=1, # 1x1卷积核
+                     stride=stride, # 步长
+                     bias=False)    # 不使用偏置
 
 
 class BasicBlock(nn.Module):
-    expansion = 1
+    """ResNet的基本块，用于ResNet-18和ResNet-34
+    这是两层的残差块，结构简单但有效
+    """
+    expansion = 1  # 输出通道数相对于输入通道数的扩展系数
 
     def __init__(self,
-                 inplanes,
-                 planes,
-                 stride=1,
-                 downsample=None,
-                 groups=1,
-                 base_width=64,
-                 dilation=1,
-                 norm_layer=None):
+                 inplanes,      # 输入通道数
+                 planes,        # 基本通道数
+                 stride=1,      # 步长，用于下采样
+                 downsample=None, # 下采样层，用于残差连接的维度匹配
+                 groups=1,      # 分组数，基本块只支持普通卷积
+                 base_width=64, # 基本宽度
+                 dilation=1,    # 膨胀系数
+                 norm_layer=None): # 正则化层
         super(BasicBlock, self).__init__()
         if norm_layer is None:
-            norm_layer = nn.BatchNorm2d
+            norm_layer = nn.BatchNorm2d  # 默认使用批次正则化
         if groups != 1 or base_width != 64:
             raise ValueError(
                 "BasicBlock only supports groups=1 and base_width=64")
         # if dilation > 1:
         #     raise NotImplementedError(
         #         "Dilation > 1 not supported in BasicBlock")
-        # Both self.conv1 and self.downsample layers downsample the input when stride != 1
-        self.conv1 = conv3x3(inplanes, planes, stride, dilation=dilation)
-        self.bn1 = norm_layer(planes)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes, dilation=dilation)
-        self.bn2 = norm_layer(planes)
-        self.downsample = downsample
-        self.stride = stride
+        # 第一个卷积层和下采样层都会在stride != 1时对输入进行下采样
+        self.conv1 = conv3x3(inplanes, planes, stride, dilation=dilation)  # 第一个3x3卷积
+        self.bn1 = norm_layer(planes)  # 第一个正则化层
+        self.relu = nn.ReLU(inplace=True)  # ReLU激活函数，就地操作节省内存
+        self.conv2 = conv3x3(planes, planes, dilation=dilation)  # 第二个3x3卷积
+        self.bn2 = norm_layer(planes)  # 第二个正则化层
+        self.downsample = downsample  # 下采样层，用于残差连接
+        self.stride = stride  # 步长
 
     def forward(self, x):
-        identity = x
+        """BasicBlock的前向传播函数"""
+        identity = x  # 保存输入，用于残差连接
 
+        # 第一个卷积块：卷积 -> 正则化 -> 激活
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
 
+        # 第二个卷积块：卷积 -> 正则化 （注意这里没有激活）
         out = self.conv2(out)
         out = self.bn2(out)
 
+        # 如果需要下采样，对残差连接的输入进行维度匹配
         if self.downsample is not None:
             identity = self.downsample(x)
 
+        # 残差连接：将输入与输出相加，这是ResNet的核心创新
         out += identity
-        out = self.relu(out)
+        out = self.relu(out)  # 最后再进行激活
 
         return out
 
 
 class Bottleneck(nn.Module):
-    expansion = 4
+    """ResNet的瓶颈块，用于ResNet-50及更深的网络
+    这是三层的残差块，使用1x1-3x3-1x1的瓶颈结构来减少计算量
+    """
+    expansion = 4  # 输出通道数是基本通道数的4倍
 
     def __init__(self,
-                 inplanes,
-                 planes,
-                 stride=1,
-                 downsample=None,
-                 groups=1,
-                 base_width=64,
-                 dilation=1,
-                 norm_layer=None):
+                 inplanes,      # 输入通道数
+                 planes,        # 基本通道数（中间层的通道数）
+                 stride=1,      # 步长
+                 downsample=None, # 下采样层
+                 groups=1,      # 分组数，用于ResNeXt
+                 base_width=64, # 基本宽度
+                 dilation=1,    # 膨胀系数
+                 norm_layer=None): # 正则化层
         super(Bottleneck, self).__init__()
         if norm_layer is None:
-            norm_layer = nn.BatchNorm2d
+            norm_layer = nn.BatchNorm2d  # 默认使用批次正则化
+        # 计算中间层的通道数，支持ResNeXt和Wide ResNet
         width = int(planes * (base_width / 64.)) * groups
-        # Both self.conv2 and self.downsample layers downsample the input when stride != 1
-        self.conv1 = conv1x1(inplanes, width)
-        self.bn1 = norm_layer(width)
-        self.conv2 = conv3x3(width, width, stride, groups, dilation)
-        self.bn2 = norm_layer(width)
-        self.conv3 = conv1x1(width, planes * self.expansion)
-        self.bn3 = norm_layer(planes * self.expansion)
-        self.relu = nn.ReLU(inplace=True)
-        self.downsample = downsample
-        self.stride = stride
+        # 第二个卷积层和下采样层都会在stride != 1时对输入进行下采样
+        self.conv1 = conv1x1(inplanes, width)  # 1x1卷积，用于降维
+        self.bn1 = norm_layer(width)  # 第一个正则化层
+        self.conv2 = conv3x3(width, width, stride, groups, dilation)  # 3x3卷积，主要的特征提取
+        self.bn2 = norm_layer(width)  # 第二个正则化层
+        self.conv3 = conv1x1(width, planes * self.expansion)  # 1x1卷积，用于升维
+        self.bn3 = norm_layer(planes * self.expansion)  # 第三个正则化层
+        self.relu = nn.ReLU(inplace=True)  # ReLU激活函数
+        self.downsample = downsample  # 下采样层
+        self.stride = stride  # 步长
 
     def forward(self, x):
-        identity = x
+        """Bottleneck的前向传播函数"""
+        identity = x  # 保存输入，用于残差连接
 
+        # 第一个卷积块：1x1卷积降维
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
 
+        # 第二个卷积块：3x3卷积提取特征
         out = self.conv2(out)
         out = self.bn2(out)
         out = self.relu(out)
 
+        # 第三个卷积块：1x1卷积升维 （注意这里没有激活）
         out = self.conv3(out)
         out = self.bn3(out)
 
+        # 如果需要下采样，对残差连接的输入进行维度匹配
         if self.downsample is not None:
             identity = self.downsample(x)
 
+        # 残差连接：将输入与输出相加
         out += identity
-        out = self.relu(out)
+        out = self.relu(out)  # 最后再进行激活
 
         return out
 
 
-@BACKBONES.register_module
+@BACKBONES.register_module  # 将这个类注册为骨干网络
 class ResNetWrapper(nn.Module):
+    """ResNet的包装器类，适配了SRLane系统的需求
+    这个类封装了标准的ResNet，并为车道线检测任务做了一些定制化修改
+    """
     def __init__(self,
-                 resnet="resnet18",
-                 pretrained=True,
-                 replace_stride_with_dilation=[False, False, False],
-                 out_conv=False,
-                 fea_stride=8,
-                 out_channel=128,
-                 in_channels=[64, 128, 256, 512],
-                 cfg=None):
+                 resnet="resnet18",    # ResNet的类型，默认使用ResNet-18
+                 pretrained=True,     # 是否使用预训练模型
+                 replace_stride_with_dilation=[False, False, False], # 是否用膨胀卷积替换步长
+                 out_conv=False,      # 是否添加输出卷积层
+                 fea_stride=8,        # 特征步长
+                 out_channel=128,     # 输出通道数
+                 in_channels=[64, 128, 256, 512], # 各层的通道数配置
+                 cfg=None):           # 配置对象
         super(ResNetWrapper, self).__init__()
-        self.cfg = cfg
-        self.in_channels = in_channels
+        self.cfg = cfg  # 保存配置对象
+        self.in_channels = in_channels  # 保存通道数配置
 
+        # 使用eval函数动态创建指定类型的ResNet
         self.model = eval(resnet)(
             pretrained=pretrained,
             replace_stride_with_dilation=replace_stride_with_dilation,
             in_channels=self.in_channels)
-        self.out = None
-        if out_conv:
-            out_channel = 512
+        self.out = None  # 输出卷积层初始化为空
+        if out_conv:  # 如果需要添加输出卷积层
+            out_channel = 512  # 默认输出通道数
+            # 从后往前找到第一个有效的通道数
             for chan in reversed(self.in_channels):
-                if chan < 0: continue
+                if chan < 0: continue  # 跳过无效的通道数
                 out_channel = chan
                 break
+            # 创建1x1卷积层调整输出通道数
             self.out = conv1x1(out_channel * self.model.expansion,
                                cfg.featuremap_out_channel)
 
     def forward(self, x):
-        x = self.model(x)
-        if self.out:
-            x[-1] = self.out(x[-1])
-        return x
+        """ResNetWrapper的前向传播函数"""
+        x = self.model(x)  # 通过ResNet模型得到多层特征
+        if self.out:  # 如果有输出卷积层
+            x[-1] = self.out(x[-1])  # 对最后一层特征进行输出卷积
+        return x  # 返回多层特征列表
 
     def __repr__(self):
-        num_params = sum(map(lambda x: x.numel(), self.parameters()))
-        return f"#Params of {self._get_name()}: {num_params / 10 ** 6:<.2f}[M]"
+        """ResNetWrapper的字符串表示，显示参数数量"""
+        num_params = sum(map(lambda x: x.numel(), self.parameters()))  # 计算总参数数量
+        return f"#Params of {self._get_name()}: {num_params / 10 ** 6:<.2f}[M]"  # 返回参数信息
 
 
 class ResNet(nn.Module):
+    """ResNet的主类，实现了整个网络结构
+    这个类实现了标准的ResNet网络，并为车道线检测任务做了一些调整
+    """
     def __init__(self,
-                 block,
-                 layers,
-                 zero_init_residual=False,
-                 groups=1,
-                 width_per_group=64,
-                 replace_stride_with_dilation=None,
-                 norm_layer=None,
-                 in_channels=None):
+                 block,           # 使用的块类型（BasicBlock或Bottleneck）
+                 layers,          # 各层的块数量列表
+                 zero_init_residual=False,  # 是否对残差分支进行零初始化
+                 groups=1,        # 分组数，用于ResNeXt
+                 width_per_group=64,  # 每组的宽度
+                 replace_stride_with_dilation=None,  # 是否用膨胀卷积替换步长
+                 norm_layer=None, # 正则化层类型
+                 in_channels=None):  # 各层的输入通道数
         super(ResNet, self).__init__()
         if norm_layer is None:
-            norm_layer = nn.BatchNorm2d
+            norm_layer = nn.BatchNorm2d  # 默认使用批次正则化
         self._norm_layer = norm_layer
 
-        self.inplanes = 64
-        self.dilation = 1
+        self.inplanes = 64  # 初始通道数
+        self.dilation = 1   # 初始膨胀系数
         if replace_stride_with_dilation is None:
-            # each element in the tuple indicates if we should replace
-            # the 2x2 stride with a dilated convolution instead
+            # 每个元素表示是否用膨胀卷积替换步长为2的卷积
             replace_stride_with_dilation = [False, False, False]
         if len(replace_stride_with_dilation) != 3:
             raise ValueError("replace_stride_with_dilation should be None "
                              f"or a 3-element tuple, got {replace_stride_with_dilation}")
-        self.groups = groups
-        self.base_width = width_per_group
-        self.conv1 = nn.Conv2d(3,
-                               self.inplanes,
-                               kernel_size=7,
-                               stride=2,
-                               padding=3,
-                               bias=False)
-        self.bn1 = norm_layer(self.inplanes)
-        self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.in_channels = in_channels
+        self.groups = groups  # 分组数
+        self.base_width = width_per_group  # 基本宽度
+        
+        # 第一个卷积层：7x7卷积，步长为2，输入为3通道的RGB图像
+        self.conv1 = nn.Conv2d(3,              # 输入通道数（RGB图像）
+                               self.inplanes,  # 输出通道数
+                               kernel_size=7,  # 卷积核大小
+                               stride=2,       # 步长，将图像大小减半
+                               padding=3,      # 填充
+                               bias=False)     # 不使用偏置
+        self.bn1 = norm_layer(self.inplanes)  # 正则化层
+        self.relu = nn.ReLU(inplace=True)     # 激活函数
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)  # 最大池化层
+        
+        self.in_channels = in_channels  # 保存通道数配置
+        # 构建四个残差块组
         self.layer1 = self._make_layer(block, in_channels[0], layers[0])
         self.layer2 = self._make_layer(block,
                                        in_channels[1],
                                        layers[1],
-                                       stride=2,
+                                       stride=2,  # 步长为2，进行下采样
                                        dilate=replace_stride_with_dilation[0])
         self.layer3 = self._make_layer(block,
                                        in_channels[2],
                                        layers[2],
-                                       stride=2,
+                                       stride=2,  # 步长为2，进行下采样
                                        dilate=replace_stride_with_dilation[1])
-        if in_channels[3] > 0:
+        if in_channels[3] > 0:  # 只有当通道数大于0时才构建第4层
             self.layer4 = self._make_layer(
                 block,
                 in_channels[3],
                 layers[3],
-                stride=2,
+                stride=2,  # 步长为2，进行下采样
                 dilate=replace_stride_with_dilation[2])
-        self.expansion = block.expansion
+        self.expansion = block.expansion  # 保存扩展系数
 
         # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         # self.fc = nn.Linear(512 * block.expansion, num_classes)
@@ -294,31 +336,38 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
+        """ResNet的前向传播函数，返回多层特征"""
+        # 第一阶段：初始特征提取
+        x = self.conv1(x)   # 7x7卷积，将图像大小减半
+        x = self.bn1(x)     # 正则化
+        x = self.relu(x)    # 激活
+        x = self.maxpool(x) # 最大池化，再次减半
 
-        out_layers = []
+        # 第二阶段：通过四个残差块组提取特征
+        out_layers = []  # 存储每一层的输出特征
         for name in ["layer1", "layer2", "layer3", "layer4"]:
-            if not hasattr(self, name):
+            if not hasattr(self, name):  # 检查层是否存在
                 continue
-            layer = getattr(self, name)
-            x = layer(x)
-            out_layers.append(x)
+            layer = getattr(self, name)  # 获取对应的层
+            x = layer(x)  # 通过层进行特征提取
+            out_layers.append(x)  # 保存输出特征
 
-        return out_layers
+        return out_layers  # 返回多层特征列表，用于特征金字塔网络
 
 
 def _resnet(arch, block, layers, pretrained, progress, **kwargs):
-    model = ResNet(block, layers, **kwargs)
-    if pretrained:
+    """ResNet的通用构建函数
+    这个函数可以构建不同类型的ResNet模型，并可选地加载预训练模型
+    """
+    model = ResNet(block, layers, **kwargs)  # 创建模型
+    if pretrained:  # 如果需要预训练模型
        # print("pretrained model: ", model_urls[arch])
-        state_dict = load_state_dict_from_url(model_urls[arch])
-        model_state_dict = model.state_dict()
+        state_dict = load_state_dict_from_url(model_urls[arch])  # 下载预训练模型参数
+        model_state_dict = model.state_dict()  # 获取当前模型参数
+        # 只加载形状匹配的参数，忽略不匹配的参数
         state_dict = {k: v for k, v in state_dict.items() if
                       k in model_state_dict and v.shape == model_state_dict[k].shape}
-        model.load_state_dict(state_dict, strict=False)
+        model.load_state_dict(state_dict, strict=False)  # 加载参数
     return model
 
 

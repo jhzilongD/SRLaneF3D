@@ -66,7 +66,7 @@ class RefineHead(nn.Module):
    self.z_embeddings = nn.Parameter(torch.zeros(self.sample_points),
                                     requires_grad=True)
    ```
-   用于3D特征采样的深度嵌入
+   用于多层级特征采样的层级嵌入
 
 3. **特征聚合网络**（第 66-78 行）：
    ```python
@@ -124,7 +124,7 @@ def translate_to_linear_weight(self,
     weight = torch.softmax(l2, dim=-1)
     return weight
 ```
-**功能**：将Z嵌入转换为用于3D采样的权重，通过高斯核实现平滑插值。
+**功能**：将Z嵌入转换为用于多层级采样的权重，通过高斯核实现平滑插值。
 
 #### 先验特征池化方法（第 117-156 行）
 ```python
@@ -146,7 +146,7 @@ def pool_prior_features(self,
    grid = torch.cat((prior_feat_xs, prior_feat_ys), dim=-1)
    ```
 
-2. **3D采样权重计算**（第 134-146 行）：
+2. **多层级采样权重计算**（第 134-146 行）：
    ```python
    if self.training or not hasattr(self, "z_weight"):
        z_weight = self.translate_to_linear_weight(self.z_embeddings)
@@ -300,7 +300,7 @@ def get_lanes(self, output, img_metas, as_lanes=True):
    - 每阶段输出作为下一阶段输入
    - 特征累积和渐进优化
 
-2. **3D特征采样**：
+2. **多层级特征采样**：
    - 从多尺度特征图采样车道线相关特征
    - Z嵌入学习最优采样深度
    - 自适应特征聚合

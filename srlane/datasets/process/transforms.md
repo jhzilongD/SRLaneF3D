@@ -1,7 +1,7 @@
-# SRLane Tensor Transformation Utilities
+# SRLane 张量变换工具
 
-## File Overview
-This file implements tensor conversion utilities for the SRLane data processing pipeline. It provides the final transformation step that converts processed numpy arrays and other Python data types into PyTorch tensors with proper formatting for training and inference.
+## 文件概述
+该文件为 SRLane 数据处理流程实现张量转换工具。它提供最终变换步骤，将处理过的numpy数组和其他Python数据类型转换为具有适当格式的PyTorch张量，用于训练和推理。
 
 ## Code Structure
 

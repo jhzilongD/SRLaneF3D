@@ -1,23 +1,23 @@
-# Optimizer Builder (`optimizer.py`)
+# 优化器构建器 (`optimizer.py`)
 
-## File Overview
+## 文件概述
 
-This module provides a factory function for building PyTorch optimizers from configuration dictionaries. It serves as a bridge between the SRLane configuration system and PyTorch's optimization library, enabling flexible optimizer selection through configuration files.
+该模块提供了从配置字典构建PyTorch优化器的工厂函数。它作为SRLane配置系统和PyTorch优化库之间的桥梁，通过配置文件实现灵活的优化器选择。
 
-## Key Functions
+## 关键函数
 
 ### `build_optimizer(cfg, net)`
 
-**Purpose**: Dynamically constructs a PyTorch optimizer based on configuration settings.
+**作用**: 基于配置设置动态构建 PyTorch 优化器。
 
-**Parameters**:
-- `cfg`: Configuration object containing optimizer settings
-  - `cfg.optimizer`: Dictionary with optimizer configuration
-  - `cfg.optimizer.type`: String specifying the optimizer class name (e.g., "Adam", "SGD")
-  - Additional parameters: Learning rate, weight decay, momentum, etc.
-- `net`: PyTorch neural network model whose parameters will be optimized
+**参数**:
+- `cfg`: 包含优化器设置的配置对象
+  - `cfg.optimizer`: 优化器配置字典
+  - `cfg.optimizer.type`: 指定优化器类名的字符串（例如，"Adam", "SGD"）
+  - 附加参数: 学习率、权重衰减、动量等
+- `net`: 其参数将被优化的 PyTorch 神经网络模型
 
-**Returns**: Instantiated PyTorch optimizer object
+**返回**: 实例化的 PyTorch 优化器对象
 
 **Data Flow**:
 1. **Configuration Parsing**: Creates a copy of the optimizer configuration to avoid modifying the original

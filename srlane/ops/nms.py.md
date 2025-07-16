@@ -1,8 +1,8 @@
-# SRLane Non-Maximum Suppression (NMS) Implementation
+# SRLane 非极大值抑制（NMS）实现
 
-## File Overview
+## 文件概述
 
-This module provides the Python interface for Non-Maximum Suppression (NMS) operations in the SRLane lane detection system. NMS is a critical post-processing step that filters overlapping detections to remove redundant lane proposals, ensuring only the most confident and non-overlapping lane detections are retained.
+该模块为SRLane车道线检测系统中的非极大值抑制（NMS）操作提供Python接口。NMS是一个关键的后处理步骤，它过滤重叠的检测结果以移除冗余的车道线提议，确保只保留最自信且不重叠的车道线检测结果。
 
 ## Copyright and Attribution
 

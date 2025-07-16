@@ -1,66 +1,66 @@
-# Main Training Script (`main.py`)
+# 主训练脚本 (`main.py`)
 
-## File Overview
+## 文件概述
 
-The main entry point for SRLane training and validation. This script provides a command-line interface for running experiments, handling configuration parsing, GPU setup, and coordination between training and validation modes. It serves as the primary interface for users to interact with the SRLane system.
+SRLane 训练和验证的主入口点。该脚本提供了运行实验的命令行界面，处理配置解析、GPU 设置以及训练和验证模式之间的协调。它是用户与 SRLane 系统交互的主要接口。
 
-## Key Functions
+## 关键函数
 
 ### `parse_args()`
 
-**Purpose**: Parses command-line arguments for training and validation configuration.
+**作用**: 解析训练和验证配置的命令行参数。
 
-**Returns**: `argparse.Namespace` object with parsed arguments
+**返回**: 包含解析参数的 `argparse.Namespace` 对象
 
-**Supported Arguments**:
+**支持的参数**:
 
 ```python
 def parse_args():
     parser = argparse.ArgumentParser(description="Train a detector")
     
-    # Required argument
-    parser.add_argument("config", help="Config file path")
+    # 必需参数
+    parser.add_argument("config", help="配置文件路径")
     
-    # Optional arguments
+    # 可选参数
     parser.add_argument("--work_dirs", type=str, default=None,
-                        help="Dirs for log and saving ckpts")
+                        help="日志和保存检查点的目录")
     parser.add_argument("--load_from", default=None,
-                        help="The checkpoint file to load from")
+                        help="要加载的检查点文件")
     parser.add_argument("--view", action="store_true",
-                        help="Whether to visualize results during validation")
+                        help="验证期间是否可视化结果")
     parser.add_argument("--validate", action="store_true",
-                        help="Whether to evaluate the checkpoint")
+                        help="是否评估检查点")
     parser.add_argument("--gpus", nargs='+', type=int, default=[0, ],
-                        help="Used GPU indices")
+                        help="使用的 GPU 索引")
     parser.add_argument("--seed", type=int, default=0,
-                        help="Random seed")
+                        help="随机种子")
 ```
 
-**Argument Details**:
+**参数详情**:
 
-- **config** (required): Path to configuration file (e.g., `configs/exp_srlane_culane.py`)
-- **--work_dirs**: Custom output directory for logs and checkpoints
-- **--load_from**: Path to pretrained checkpoint for initialization or validation
-- **--view**: Enables visualization of lane detection results during validation
-- **--validate**: Switches to validation-only mode (no training)
-- **--gpus**: List of GPU indices to use (supports multi-GPU training)
-- **--seed**: Random seed for reproducible experiments
+- **config** (必需): 配置文件路径（例如，`configs/exp_srlane_culane.py`）
+- **--work_dirs**: 自定义日志和检查点输出目录
+- **--load_from**: 用于初始化或验证的预训练检查点路径
+- **--view**: 在验证期间启用车道线检测结果的可视化
+- **--validate**: 切换到仅验证模式（不训练）
+- **--gpus**: 要使用的 GPU 索引列表（支持多 GPU 训练）
+- **--seed**: 可重现实验的随机种子
 
 ### `main()`
 
-**Purpose**: Main execution function that orchestrates the training/validation pipeline.
+**作用**: 统筹训练/验证流程的主执行函数。
 
-**Execution Flow**:
+**执行流程**:
 
 ```python
 def main():
     args = parse_args()
     
-    # 1. GPU Environment Setup
+    # 1. GPU 环境设置
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(
         str(gpu) for gpu in args.gpus)
     
-    # 2. Configuration Loading and Merging
+    # 2. 配置加载和合并
     cfg = Config.fromfile(args.config)
     cfg.gpus = len(args.gpus)
     cfg.load_from = args.load_from
@@ -68,10 +68,10 @@ def main():
     cfg.seed = args.seed
     cfg.work_dirs = args.work_dirs if args.work_dirs else cfg.work_dirs
     
-    # 3. Performance Optimization
+    # 3. 性能优化
     cudnn.benchmark = True
     
-    # 4. Runner Initialization and Execution
+    # 4. 运行器初始化和执行
     runner = Runner(cfg)
     if args.validate:
         runner.validate()
@@ -79,72 +79,72 @@ def main():
         runner.train()
 ```
 
-## Configuration Integration
+## 配置集成
 
-### Configuration Loading
-Uses MMEngine's `Config.fromfile()` to load Python-based configuration files:
+### 配置加载
+使用 MMEngine 的 `Config.fromfile()` 加载基于 Python 的配置文件:
 
 ```python
 cfg = Config.fromfile(args.config)
 ```
 
-**Supported Config Formats**:
-- Python files with configuration dictionaries
-- Hierarchical configuration inheritance
-- Dynamic configuration generation
+**支持的配置格式**:
+- 包含配置字典的 Python 文件
+- 分层配置继承
+- 动态配置生成
 
-### Configuration Override
-Command-line arguments override configuration file values:
+### 配置覆盖
+命令行参数覆盖配置文件值:
 
 ```python
-cfg.gpus = len(args.gpus)          # Number of GPUs
-cfg.load_from = args.load_from     # Checkpoint path
-cfg.view = args.view               # Visualization flag
-cfg.seed = args.seed               # Random seed
+cfg.gpus = len(args.gpus)          # GPU 数量
+cfg.load_from = args.load_from     # 检查点路径
+cfg.view = args.view               # 可视化标志
+cfg.seed = args.seed               # 随机种子
 cfg.work_dirs = args.work_dirs if args.work_dirs else cfg.work_dirs
 ```
 
-This allows flexible experimentation without modifying configuration files.
+这允许灵活的实验而不需要修改配置文件。
 
-## GPU Management
+## GPU 管理
 
-### Environment Variable Setup
+### 环境变量设置
 ```python
 os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(str(gpu) for gpu in args.gpus)
 ```
 
-**Purpose**: Controls which GPUs are visible to PyTorch
-**Benefits**:
-- Isolates training to specific GPUs
-- Enables multi-GPU training on selected devices
-- Prevents interference with other processes
+**作用**: 控制 PyTorch 可见的 GPU
+**优势**:
+- 将训练隔离到特定的 GPU
+- 在选定的设备上启用多 GPU 训练
+- 防止与其他进程干扰
 
-### Performance Optimization
+### 性能优化
 ```python
 cudnn.benchmark = True
 ```
 
-**Purpose**: Enables cuDNN autotuner for optimal convolution algorithms
-**Benefits**:
-- Automatically selects fastest convolution implementations
-- Improves training speed for fixed input sizes
-- Optimizes for specific hardware configurations
+**作用**: 启用 cuDNN 自动调优器以获得最优卷积算法
+**优势**:
+- 自动选择最快的卷积实现
+- 提高固定输入尺寸的训练速度
+- 针对特定硬件配置进行优化
 
-## Usage Examples
+## 使用示例
 
-### Training Examples
+### 训练示例
 
-**Single GPU Training**:
+**单 GPU 训练**:
 ```bash
 python tools/main.py configs/exp_srlane_culane.py --gpus 0
 ```
 
-**Multi-GPU Training**:
+**多 GPU 训练**:
 ```bash
 python tools/main.py configs/exp_srlane_culane.py --gpus 0 1 2 3
 ```
 
-**Training with Custom Settings**:
+**自定义设置训练**:
 ```bash
 python tools/main.py configs/exp_srlane_culane.py \
     --gpus 0 1 \
@@ -152,16 +152,16 @@ python tools/main.py configs/exp_srlane_culane.py \
     --seed 42
 ```
 
-**Resume Training from Checkpoint**:
+**从检查点恢复训练**:
 ```bash
 python tools/main.py configs/exp_srlane_culane.py \
     --load_from ./work_dirs/ckpt/best_model.pth \
     --gpus 0
 ```
 
-### Validation Examples
+### 验证示例
 
-**Standard Validation**:
+**标准验证**:
 ```bash
 python tools/main.py configs/exp_srlane_culane.py \
     --load_from checkpoint/baseline.pth \
@@ -169,7 +169,7 @@ python tools/main.py configs/exp_srlane_culane.py \
     --gpus 0
 ```
 
-**Validation with Visualization**:
+**带可视化的验证**:
 ```bash
 python tools/main.py configs/exp_srlane_culane.py \
     --load_from checkpoint/baseline.pth \
@@ -178,59 +178,59 @@ python tools/main.py configs/exp_srlane_culane.py \
     --gpus 0
 ```
 
-## Mode Selection
+## 模式选择
 
-### Training Mode (Default)
-- Executed when `--validate` flag is not provided
-- Runs complete training pipeline with periodic validation
-- Saves checkpoints and logs training progress
-- Automatically validates at specified intervals
+### 训练模式（默认）
+- 当未提供 `--validate` 标志时执行
+- 运行完整的训练流程并定期验证
+- 保存检查点并记录训练进度
+- 在指定间隔自动验证
 
-### Validation Mode
-- Activated with `--validate` flag
-- Loads model from checkpoint specified by `--load_from`
-- Runs inference on validation set
-- Computes and reports evaluation metrics
-- Optionally visualizes results with `--view` flag
+### 验证模式
+- 通过 `--validate` 标志激活
+- 从 `--load_from` 指定的检查点加载模型
+- 在验证集上运行推理
+- 计算并报告评估指标
+- 可选地使用 `--view` 标志可视化结果
 
-## Error Handling and Validation
+## 错误处理和验证
 
-### Required Arguments
-- Script validates that configuration file path is provided
-- Exits with usage message if required arguments are missing
+### 必需参数
+- 脚本验证是否提供了配置文件路径
+- 如果缺少必需参数，则退出并显示使用消息
 
-### Configuration Validation
-- MMEngine Config system validates configuration file syntax
-- Reports detailed error messages for configuration issues
+### 配置验证
+- MMEngine 配置系统验证配置文件语法
+- 报告配置问题的详细错误消息
 
-### GPU Availability
-- Relies on PyTorch CUDA availability checks
-- cuDNN benchmark optimization is conditionally applied
+### GPU 可用性
+- 依赖 PyTorch CUDA 可用性检查
+- 有条件地应用 cuDNN 基准测试优化
 
-## Integration with SRLane Architecture
+## 与 SRLane 架构的集成
 
-### Component Coordination
-The main script coordinates several SRLane components:
+### 组件协调
+主脚本协调多个 SRLane 组件:
 
-1. **Configuration System**: Loads and merges experimental settings
-2. **Runner Class**: Delegates execution to training/validation orchestrator
-3. **GPU Management**: Sets up distributed training environment
-4. **Logging**: Inherits logging configuration from Runner
+1. **配置系统**: 加载和合并实验设置
+2. **Runner 类**: 将执行委托给训练/验证协调器
+3. **GPU 管理**: 设置分布式训练环境
+4. **日志记录**: 从 Runner 继承日志配置
 
-### Experiment Management
-The script supports various experimental workflows:
+### 实验管理
+脚本支持各种实验工作流:
 
-- **Hyperparameter Sweeps**: Different configs with same script
-- **Ablation Studies**: Modifying specific configuration components
-- **Transfer Learning**: Loading pretrained weights with `--load_from`
-- **Performance Analysis**: Validation-only runs for model evaluation
+- **超参数扫描**: 使用相同脚本的不同配置
+- **消融研究**: 修改特定配置组件
+- **迁移学习**: 使用 `--load_from` 加载预训练权重
+- **性能分析**: 仅验证运行用于模型评估
 
-## Design Patterns
+## 设计模式
 
-1. **Command-Line Interface**: Standard argparse pattern for user interaction
-2. **Configuration Override**: Command-line arguments take precedence over config files
-3. **Mode Selection**: Single script handles both training and validation
-4. **Environment Setup**: Systematic GPU and performance configuration
-5. **Delegation**: Core logic delegated to specialized Runner class
+1. **命令行接口**: 用于用户交互的标准 argparse 模式
+2. **配置覆盖**: 命令行参数优先于配置文件
+3. **模式选择**: 单个脚本处理训练和验证
+4. **环境设置**: 系统化的 GPU 和性能配置
+5. **委托**: 核心逻辑委托给专门的 Runner 类
 
-The main script provides a clean, flexible interface for running SRLane experiments while handling the complexities of GPU management, configuration loading, and mode selection behind a simple command-line interface.
+主脚本为运行 SRLane 实验提供了一个清晰、灵活的接口，同时在简单的命令行接口后面处理 GPU 管理、配置加载和模式选择的复杂性。

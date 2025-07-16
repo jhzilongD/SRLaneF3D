@@ -1,8 +1,8 @@
-# SRLane Training Progress Recorder
+# SRLane 训练进度记录器
 
-## File Overview
+## 文件概述
 
-This module provides comprehensive training progress tracking and recording capabilities for the SRLane system. It implements the `Recorder` class and supporting utilities that handle experiment management, logging, metric tracking, and TensorBoard integration. The recorder serves as the central hub for monitoring training progress, managing experiment artifacts, and providing detailed logging throughout the training pipeline.
+该模块为 SRLane 系统提供全面的训练进度跟踪和记录功能。它实现了 `Recorder` 类和支持工具，处理实验管理、日志记录、指标跟踪和 TensorBoard 集成。记录器作为监控训练进度、管理实验产物和在整个训练流程中提供详细日志的中心枢纽。
 
 ## Imports and Dependencies
 

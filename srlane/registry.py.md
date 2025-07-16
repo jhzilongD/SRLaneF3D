@@ -1,23 +1,23 @@
-# SRLane Registry System
+# SRLane 注册系统
 
-## File Overview
+## 文件概述
 
-This module implements a flexible registry system for dynamic component registration and instantiation in the SRLane framework. The registry provides a centralized mechanism for managing different types of components (models, datasets, losses, etc.) and supports configuration-driven object creation. This system enables modular architecture and easy experimentation with different component combinations.
+该模块为 SRLane 框架实现了灵活的注册系统，用于动态组件注册和实例化。注册系统为管理不同类型的组件（模型、数据集、损失函数等）提供了集中式机制，并支持配置驱动的对象创建。该系统实现了模块化架构，并便于不同组件组合的实验。
 
-## Imports and Dependencies
+## 导入和依赖
 
 ```python
 import six
 import inspect
 ```
 
-**Dependencies**:
-- **six**: Python 2/3 compatibility library for string type checking
-- **inspect**: Runtime introspection utilities for class validation
+**依赖项**:
+- **six**: 用于字符串类型检查的 Python 2/3 兼容库
+- **inspect**: 用于类验证的运行时内省工具
 
-## Utility Functions
+## 工具函数
 
-### String Type Checking
+### 字符串类型检查
 
 ```python
 def is_str(x):

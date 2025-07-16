@@ -1,23 +1,23 @@
-# SRLane Lane Representation and Manipulation
+# SRLane 车道线表示和操作
 
-## File Overview
+## 文件概述
 
-This module defines the `Lane` class, which provides a sophisticated representation for lane markings in the SRLane detection system. The class handles lane interpolation, coordinate transformations, and provides iterative access to lane points. It uses spline interpolation to create smooth, continuous lane representations from discrete detection points.
+该模块定义了 `Lane` 类，为 SRLane 检测系统中的车道标记提供了复杂的表示。该类处理车道线插值、坐标变换，并提供对车道线点的迭代访问。它使用样条插值从离散检测点创建平滑、连续的车道线表示。
 
-## Imports and Dependencies
+## 导入和依赖
 
 ```python
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 ```
 
-**Dependencies**:
-- **NumPy**: Core array operations and mathematical functions
-- **SciPy**: Provides `InterpolatedUnivariateSpline` for smooth curve interpolation
+**依赖项**:
+- **NumPy**: 核心数组操作和数学函数
+- **SciPy**: 提供用于平滑曲线插值的 `InterpolatedUnivariateSpline`
 
-## Core Class Definition
+## 核心类定义
 
-### Lane Class
+### Lane 类
 
 ```python
 class Lane:

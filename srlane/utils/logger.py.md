@@ -1,17 +1,17 @@
-# SRLane Logging Infrastructure
+# SRLane 日志基础设施
 
-## File Overview
+## 文件概述
 
-This module provides logging infrastructure for the SRLane lane detection system. It implements a centralized logging configuration that supports both console output and file logging with consistent formatting across the entire application. The logger is designed to integrate with the training pipeline and provide comprehensive debugging and monitoring capabilities.
+该模块为 SRLane 车道线检测系统提供日志基础设施。它实现了集中式日志配置，支持控制台输出和文件日志，在整个应用程序中保持一致的格式。该日志记录器设计为与训练流程集成，并提供全面的调试和监控功能。
 
-## Imports and Dependencies
+## 导入和依赖
 
 ```python
 import logging
 ```
 
-**Dependencies**:
-- **logging**: Python's standard logging module for flexible log message handling
+**依赖项**:
+- **logging**: Python 的标准日志模块，用于灵活的日志消息处理
 
 ## Core Function
 

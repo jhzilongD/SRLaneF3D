@@ -1,23 +1,23 @@
-# SRLane CULane Evaluation Metrics
+# SRLane CULane 评估指标
 
-## File Overview
-This file implements the official CULane evaluation metrics for lane detection. It provides both discrete (official) and continuous IoU calculation methods, lane interpolation utilities, and comprehensive evaluation functions that measure precision, recall, and F1 scores for lane detection performance.
+## 文件概述
+该文件实现了车道线检测的官方 CULane 评估指标。它提供离散（官方）和连续IoU计算方法、车道线插值工具以及测量车道线检测性能的精确率、召回率和F1分数的综合评估函数。
 
-## Code Structure
+## 代码结构
 
-### Lane Visualization Utilities
+### 车道线可视化工具
 
-#### Lane Drawing Function
+#### 车道线绘制函数
 ```python
 def draw_lane(lane, img=None, img_shape=None, width=30):
 ```
 
-**Purpose**: Renders lane coordinates as thick lines on a binary mask for IoU calculation.
+**作用**: 在二值面罩上将车道线坐标渲染为粗线，用于IoU计算。
 
-**Parameters**:
-- **`lane`** (np.ndarray): Lane coordinates as `(N, 2)` array of `(x, y)` points
-- **`img`** (np.ndarray, optional): Existing image to draw on
-- **`img_shape`** (tuple, optional): Shape for new image if `img` is None
+**参数**:
+- **`lane`** (np.ndarray): 车道线坐标，作为 `(N, 2)` 数组的 `(x, y)` 点
+- **`img`** (np.ndarray, 可选): 要绘制的现有图像
+- **`img_shape`** (tuple, 可选): 如果 `img` 为 None，新图像的形状
 - **`width`** (int): Line thickness for lane rendering (default: 30 pixels)
 
 **Implementation**:

@@ -1,10 +1,10 @@
-# SRLane Visualization Utilities
+# SRLane 可视化工具
 
-## File Overview
+## 文件概述
 
-This module provides visualization utilities for the SRLane lane detection system. It focuses on rendering lane detection results on images using OpenCV, with support for multiple lanes, customizable colors, and flexible output options. The visualization system is essential for debugging, evaluation, and demonstration of lane detection performance.
+该模块为 SRLane 车道线检测系统提供可视化工具。它专注于使用 OpenCV 在图像上渲染车道线检测结果，支持多条车道线、可自定义颜色和灵活的输出选项。可视化系统对于调试、评估和展示车道线检测性能至关重要。
 
-## Imports and Dependencies
+## 导入和依赖
 
 ```python
 import os
@@ -12,12 +12,12 @@ import cv2
 import os.path as osp
 ```
 
-**Dependencies**:
-- **os**: File system operations for directory management
-- **cv2**: OpenCV for image processing and rendering operations
-- **os.path**: Path manipulation utilities (aliased as `osp`)
+**依赖项**:
+- **os**: 用于目录管理的文件系统操作
+- **cv2**: 用于图像处理和渲染操作的 OpenCV
+- **os.path**: 路径操作工具（别名为 `osp`）
 
-## Color Palette Definition
+## 颜色调色板定义
 
 ```python
 COLORS = [

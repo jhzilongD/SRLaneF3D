@@ -1,8 +1,8 @@
-# Learning Rate Scheduler Builder (`scheduler.py`)
+# 学习率调度器构建器 (`scheduler.py`)
 
-## File Overview
+## 文件概述
 
-This module provides a factory function for building PyTorch learning rate schedulers from configuration dictionaries. It extends PyTorch's standard scheduler library with a custom warmup scheduler that combines linear warmup with cosine annealing, which is particularly effective for training deep lane detection models.
+该模块提供了从配置字典构建PyTorch学习率调度器的工厂函数。它通过结合线性预热和余弦退火的自定义预热调度器扩展了PyTorch的标准调度器库，这对训练深度车道线检测模型特别有效。
 
 ## Key Functions
 

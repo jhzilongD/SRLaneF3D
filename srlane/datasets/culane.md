@@ -1,11 +1,11 @@
-# SRLane CULane Dataset Implementation
+# SRLane CULane 数据集实现文档
 
-## File Overview
-This file implements the `CULane` dataset class, which handles the CULane dataset format for lane detection. CULane is a large-scale challenging dataset for lane detection with diverse scenarios including normal, crowded, highlight, shadow, no-line, arrow, curve, cross, and night conditions.
+## 文件概述
+本文件实现了 `CULane` 数据集类，用于处理车道线检测的 CULane 数据集格式。CULane 是一个大规模的具有挑战性的车道线检测数据集，包含多种场景，如正常、拥挤、高亮、阴影、无车道线、箭头、弯道、交叉和夜间等情况。
 
-## Code Structure
+## 代码结构
 
-### Dataset Constants
+### 数据集常量
 ```python
 LIST_FILE = {
     "train": "list/train_gt.txt",
@@ -26,152 +26,152 @@ CATEGORYS = {
 }
 ```
 
-#### Purpose:
-- **`LIST_FILE`**: Maps dataset splits to their corresponding file lists
-- **`CATEGORYS`**: Defines different test scenarios for comprehensive evaluation
+#### 作用:
+- **`LIST_FILE`**: 将数据集划分映射到对应的文件列表
+- **`CATEGORYS`**: 定义不同的测试场景以进行全面评估
 
-### Class Definition
+### 类定义
 ```python
 @DATASETS.register_module
 class CULane(BaseDataset):
 ```
-Inherits from `BaseDataset` and is registered in the dataset registry for automatic instantiation.
+继承自 `BaseDataset` 并在数据集注册器中注册，以便自动实例化。
 
-### Constructor
+### 构造函数
 ```python
 def __init__(self, data_root, split, processes=None, cfg=None):
 ```
 
-#### Initialization Process:
-1. **Parent Initialization**: Calls `BaseDataset.__init__()`
-2. **Path Setup**: Constructs list file path using `LIST_FILE` mapping
-3. **Annotation Loading**: Calls `load_annotations()` to populate `self.data_infos`
-4. **Sample Points**: Sets `h_samples` for evaluation (y-coordinates from 270 to 590 pixels)
+#### 初始化过程:
+1. **父类初始化**: 调用 `BaseDataset.__init__()`
+2. **路径设置**: 使用 `LIST_FILE` 映射构建列表文件路径
+3. **标注加载**: 调用 `load_annotations()` 填充 `self.data_infos`
+4. **采样点**: 设置用于评估的 `h_samples`（y坐标从270到590像素）
 
-#### Key Attributes:
-- **`list_path`**: Path to the dataset split file
-- **`split`**: Current dataset split ("train", "val", "test")
-- **`h_samples`**: Normalized y-coordinates for evaluation sampling
+#### 关键属性:
+- **`list_path`**: 数据集划分文件的路径
+- **`split`**: 当前数据集划分（"train", "val", "test"）
+- **`h_samples`**: 用于评估采样的归一化y坐标
 
-### Annotation Loading
+### 标注加载
 ```python
 def load_annotations(self, diff_thr=15):
 ```
 
-#### Purpose:
-Loads and processes all annotations for the dataset split, with caching for performance optimization.
+#### 作用:
+加载和处理数据集划分的所有标注，通过缓存机制优化性能。
 
-#### Caching Mechanism:
-- **Cache Location**: `.cache/culane_{split}.pkl`
-- **Cache Benefits**: Significantly speeds up subsequent dataset initializations
-- **Cache Invalidation**: Manual deletion required when dataset changes
+#### 缓存机制:
+- **缓存位置**: `.cache/culane_{split}.pkl`
+- **缓存优势**: 显著加快后续数据集初始化速度
+- **缓存失效**: 数据集变化时需要手动删除
 
-#### Processing Pipeline:
-1. **File Parsing**: Reads the dataset list file line by line
-2. **Path Construction**: Builds absolute paths for images and annotations
-3. **Duplicate Detection**: For training split, filters near-duplicate images using pixel difference threshold
-4. **Annotation Processing**: 
-   - Loads lane coordinates from `.lines.txt` files
-   - Filters invalid points (negative coordinates)
-   - Removes duplicate points within lanes
-   - Filters lanes with insufficient points (< 3 points)
-   - Sorts lane points by y-coordinate (bottom to top)
+#### 处理流程:
+1. **文件解析**: 逐行读取数据集列表文件
+2. **路径构建**: 为图像和标注构建绝对路径
+3. **重复检测**: 对于训练集，使用像素差异阈值过滤近似重复图像
+4. **标注处理**: 
+   - 从 `.lines.txt` 文件加载车道线坐标
+   - 过滤无效点（负坐标）
+   - 移除车道线内的重复点
+   - 过滤点数不足的车道线（< 3个点）
+   - 按y坐标排序车道线点（从下到上）
 
-#### Data Structure:
-Each entry in `self.data_infos` contains:
+#### 数据结构:
+`self.data_infos` 中的每个条目包含:
 ```python
 {
     "img_name": "relative/path/to/image.jpg",
     "img_path": "/absolute/path/to/image.jpg", 
-    "mask_path": "/absolute/path/to/mask.png",  # Optional
-    "lane_exist": np.array([0,1,1,0]),  # Lane existence flags
-    "lanes": [[(x1,y1), (x2,y2), ...], ...]  # Lane coordinates
+    "mask_path": "/absolute/path/to/mask.png",  # 可选
+    "lane_exist": np.array([0,1,1,0]),  # 车道线存在标志
+    "lanes": [[(x1,y1), (x2,y2), ...], ...]  # 车道线坐标
 }
 ```
 
-#### Duplicate Filtering Logic:
-- **Threshold**: `diff_thr=15` (average pixel difference)
-- **Calculation**: Mean absolute difference across all pixels and channels
-- **Purpose**: Removes consecutive similar frames to improve training diversity
+#### 重复过滤逻辑:
+- **阈值**: `diff_thr=15`（平均像素差异）
+- **计算**: 所有像素和通道的平均绝对差异
+- **目的**: 移除连续的相似帧以提高训练多样性
 
-### Prediction String Generation
+### 预测字符串生成
 ```python
 def get_prediction_string(self, pred):
 ```
 
-#### Purpose:
-Converts model predictions to CULane evaluation format string representation.
+#### 作用:
+将模型预测转换为 CULane 评估格式的字符串表示。
 
-#### Input Format:
-- **`pred`**: List of lane objects with callable interface `lane(ys)` returning x-coordinates
+#### 输入格式:
+- **`pred`**: 具有可调用接口 `lane(ys)` 的车道线对象列表，返回x坐标
 
-#### Processing Steps:
-1. **Y-Sampling**: Uses `self.h_samples` for consistent y-coordinate sampling
-2. **Coordinate Conversion**: Calls `lane(ys)` to get x-coordinates at sample points
-3. **Validity Filtering**: Removes points outside image boundaries (`xs >= 0` and `xs < 1`)
-4. **Denormalization**: Converts normalized coordinates to pixel coordinates
-5. **Ordering**: Reverses coordinates (bottom-to-top to top-to-bottom)
-6. **String Formatting**: Creates space-separated coordinate pairs with 5 decimal precision
+#### 处理步骤:
+1. **Y采样**: 使用 `self.h_samples` 进行一致的y坐标采样
+2. **坐标转换**: 调用 `lane(ys)` 在采样点获取x坐标
+3. **有效性过滤**: 移除图像边界外的点（`xs >= 0` 且 `xs < 1`）
+4. **去归一化**: 将归一化坐标转换为像素坐标
+5. **排序**: 反转坐标（从下到上到从上到下）
+6. **字符串格式化**: 创建空格分隔的5位小数精度的坐标对
 
-#### Output Format:
+#### 输出格式:
 ```
 x1.xxxxx y1.xxxxx x2.xxxxx y2.xxxxx ...
 x1.xxxxx y1.xxxxx x2.xxxxx y2.xxxxx ...
 ```
 
-### Evaluation Method
+### 评估方法
 ```python
 def evaluate(self, predictions, output_basedir):
 ```
 
-#### Purpose:
-Evaluates model predictions against ground truth using the official CULane metric.
+#### 作用:
+使用官方 CULane 指标对模型预测与真实标签进行评估。
 
-#### Evaluation Pipeline:
-1. **Output Generation**: 
-   - Creates directory structure matching dataset layout
-   - Writes prediction strings to `.lines.txt` files
-   - Maintains original filename conventions
+#### 评估流程:
+1. **输出生成**: 
+   - 创建与数据集布局匹配的目录结构
+   - 将预测字符串写入 `.lines.txt` 文件
+   - 保持原始文件名约定
 
-2. **Category Evaluation** (Test split only):
-   - Evaluates each scenario category separately
-   - Provides detailed performance breakdown per driving condition
+2. **类别评估**（仅测试集）:
+   - 分别评估每个场景类别
+   - 提供每种驾驶条件下的详细性能分解
 
-3. **Overall Evaluation**:
-   - Computes metrics across entire dataset split
-   - Uses IoU threshold of 0.5 for lane matching
-   - Returns F1 score as primary metric
+3. **整体评估**:
+   - 计算整个数据集划分的指标
+   - 使用 0.5 的 IoU 阈值进行车道线匹配
+   - 返回 F1 分数作为主要指标
 
-#### Evaluation Metrics:
-- **IoU Threshold**: 0.5 (standard for CULane)
-- **Primary Metric**: F1 Score
-- **Additional Metrics**: Precision, Recall, True Positives, False Positives, False Negatives
+#### 评估指标:
+- **IoU 阈值**: 0.5（CULane 标准）
+- **主要指标**: F1 分数
+- **附加指标**: 精确率、召回率、真正例、假正例、假负例
 
-### Data Flow and Tensor Shapes
+### 数据流和张量形状
 
-#### Annotation Loading Flow:
+#### 标注加载流程:
 ```
-List File → Parse Lines → Extract Paths → Load Lane Coordinates → Filter & Sort → Cache
-```
-
-#### Prediction Evaluation Flow:
-```
-Model Predictions → Coordinate Sampling → Validation → Denormalization → String Format → File Output → Metric Calculation
+列表文件 → 解析行 → 提取路径 → 加载车道线坐标 → 过滤排序 → 缓存
 ```
 
-#### Lane Coordinate Format:
-- **Storage**: List of `(x, y)` tuples per lane
-- **Coordinate System**: Image pixel coordinates
-- **Sorting**: Y-coordinates sorted in descending order (bottom to top)
-- **Filtering**: Removes invalid coordinates and duplicate points
+#### 预测评估流程:
+```
+模型预测 → 坐标采样 → 验证 → 去归一化 → 字符串格式 → 文件输出 → 指标计算
+```
 
-## Configuration Dependencies
+#### 车道线坐标格式:
+- **存储**: 每条车道线的 `(x, y)` 元组列表
+- **坐标系**: 图像像素坐标
+- **排序**: Y坐标按降序排列（从下到上）
+- **过滤**: 移除无效坐标和重复点
 
-### Required Parameters:
-- **`ori_img_h`**: Original image height (typically 590 for CULane)
-- **`ori_img_w`**: Original image width (typically 1640 for CULane)
+## 配置依赖
 
-### Dataset Structure Requirements:
+### 必需参数:
+- **`ori_img_h`**: 原始图像高度（CULane 通常为 590）
+- **`ori_img_w`**: 原始图像宽度（CULane 通常为 1640）
+
+### 数据集结构要求:
 ```
 data_root/
 ├── list/
@@ -183,14 +183,14 @@ data_root/
 │       ├── test1_crowd.txt
 │       └── ...
 ├── driver_*/
-│   ├── *.jpg (images)
-│   └── *.lines.txt (annotations)
-└── laneseg_label_w16/ (optional masks)
+│   ├── *.jpg (图像)
+│   └── *.lines.txt (标注)
+└── laneseg_label_w16/ (可选面罩)
 ```
 
-## Usage Examples
+## 使用示例
 
-### Dataset Creation:
+### 数据集创建:
 ```python
 dataset = CULane(
     data_root="/path/to/culane",
@@ -200,7 +200,7 @@ dataset = CULane(
 )
 ```
 
-### Evaluation Usage:
+### 评估使用:
 ```python
 f1_score = dataset.evaluate(
     predictions=model_predictions,
@@ -208,45 +208,45 @@ f1_score = dataset.evaluate(
 )
 ```
 
-### Prediction Format:
+### 预测格式:
 ```python
-# Each prediction should be a callable lane object
-lane_prediction = lambda ys: np.array([...])  # Returns x-coords for given y-coords
+# 每个预测应该是一个可调用的车道线对象
+lane_prediction = lambda ys: np.array([...])  # 为给定y坐标返回x坐标
 predictions = [lane_prediction1, lane_prediction2, ...]
 ```
 
-## Integration with SRLane System
+## 与 SRLane 系统的集成
 
-### Training Integration:
-- Inherits data loading and processing from `BaseDataset`
-- Provides lane annotations in format expected by SRLane models
-- Supports data augmentation through processing pipeline
+### 训练集成:
+- 从 `BaseDataset` 继承数据加载和处理功能
+- 提供 SRLane 模型期望格式的车道线标注
+- 通过处理流程支持数据增强
 
-### Evaluation Integration:
-- Implements official CULane evaluation protocol
-- Provides category-wise performance analysis
-- Integrates with SRLane's validation pipeline
+### 评估集成:
+- 实现官方 CULane 评估协议
+- 提供类别级别的性能分析
+- 与 SRLane 的验证流程集成
 
-### Model Compatibility:
-- Expects model predictions as callable lane objects
-- Handles coordinate normalization and denormalization
-- Supports various lane representation formats through prediction interface
+### 模型兼容性:
+- 期望模型预测为可调用的车道线对象
+- 处理坐标归一化和去归一化
+- 通过预测接口支持各种车道线表示格式
 
-## Performance Considerations
+## 性能考量
 
-### Caching Strategy:
-- Annotation loading cached to disk for faster startup
-- Cache invalidation requires manual deletion
-- Significant speedup for large datasets
+### 缓存策略:
+- 标注加载缓存到磁盘以快速启动
+- 缓存失效需要手动删除
+- 对大型数据集显著加速
 
-### Memory Optimization:
-- Lazy loading of images (loaded only when accessed)
-- Efficient coordinate storage using tuples
-- Minimal memory footprint for annotation metadata
+### 内存优化:
+- 延迟加载图像（仅在访问时加载）
+- 使用元组高效存储坐标
+- 标注元数据的最小内存占用
 
-### Evaluation Efficiency:
-- Parallel processing in metric calculation
-- Optimized coordinate conversion routines
-- Batch processing of prediction files
+### 评估效率:
+- 指标计算中的并行处理
+- 优化的坐标转换例程
+- 预测文件的批处理
 
-This implementation provides a robust and efficient interface to the CULane dataset, handling the complexities of the dataset format while providing clean integration with the SRLane training and evaluation pipeline.
+该实现为 CULane 数据集提供了健壮高效的接口，处理了数据集格式的复杂性，同时为 SRLane 训练和评估流程提供了清晰的集成。

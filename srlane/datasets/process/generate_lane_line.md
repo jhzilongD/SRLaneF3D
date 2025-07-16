@@ -1,18 +1,18 @@
-# SRLane Lane Line Generation and Processing
+# SRLane 车道线生成和处理
 
-## File Overview
-This file implements the `GenerateLaneLine` class, which is the core data processing component in SRLane. It handles the transformation of raw lane annotations into training-ready ground truth representations, including angle maps, segmentation masks, and lane coordinate encoding. The class also manages data augmentation through imgaug integration.
+## 文件概述
+该文件实现了 `GenerateLaneLine` 类，这是 SRLane 中的核心数据处理组件。它处理原始车道线标注到训练就绪真实标签表示的转换，包括角度图、分割面罩和车道线坐标编码。该类还通过 imgaug 集成管理数据增强。
 
-## Code Structure
+## 代码结构
 
-### Class Definition
+### 类定义
 ```python
 @PROCESS.register_module
 class GenerateLaneLine(object):
 ```
-Registered in the PROCESS registry for automatic instantiation from configuration files.
+在 PROCESS 注册器中注册，以便从配置文件自动实例化。
 
-### Constructor
+### 构造函数
 ```python
 def __init__(self, transforms=None, cfg=None, training=True):
 ```
