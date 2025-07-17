@@ -108,6 +108,17 @@ class Runner(object):
         train_loader = build_dataloader(self.cfg.dataset.train,
                                         self.cfg,
                                         is_train=True)
+        
+        # 打印数据集和数据加载器信息
+        print("\n" + "="*60)
+        print("CULane训练数据集信息：")
+        print(f"数据集样本数量: {len(train_loader.dataset)} 张图像")
+        print(f"批次大小 (batch_size): {train_loader.batch_size}")
+        print(f"数据加载器批次数量: {len(train_loader)} 个批次")
+        print(f"工作进程数 (num_workers): {train_loader.num_workers}")
+        print(f"是否打乱数据 (shuffle): {train_loader._DataLoader__initialized and hasattr(train_loader.sampler, 'shuffle')}")
+        print("="*60 + "\n")
+        
         # 使用Fabric设置数据加载器以适配多卡训练
         train_loader = self.fabric.setup_dataloaders(train_loader)
         self.recorder.logger.info("Start training...")  # 输出开始训练信息

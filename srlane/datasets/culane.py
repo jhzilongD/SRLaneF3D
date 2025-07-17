@@ -138,6 +138,14 @@ CULane数据集类
         # 保存到缓存文件
         with open(cache_path, "wb") as cache_file:
             pkl.dump(self.data_infos, cache_file)
+        
+        # 打印数据集统计信息
+        print(f"\n{'='*50}")
+        print(f"CULane {self.split} 数据集加载完成！")
+        print(f"图像总数: {len(self.data_infos)} 张")
+        print(f"最大车道线数: {self.max_lanes} 条")
+        print(f"数据集路径: {self.data_root}")
+        print(f"{'='*50}\n")
 
     def get_prediction_string(self, pred):
         """将预测结果转换为CULane格式的字符串

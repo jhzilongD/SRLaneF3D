@@ -57,6 +57,8 @@ def main():
     # 例如你有两个GPU，只想用第0个和第1个，就设置为 "0,1"
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(
         str(gpu) for gpu in args.gpus)
+    print("CUDA_VISIBLE_DEVICES: ",os.environ.get("CUDA_VISIBLE_DEVICES"))
+
 
     # 第三步：加载配置文件（这个文件包含了所有训练设置）
     cfg = Config.fromfile(args.config)
